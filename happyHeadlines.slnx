@@ -1,3 +1,5 @@
 <Solution>
   <Project Path="article-service/article-service.csproj" />
+  <Project Path="comment-service/comment-service.csproj" />
+  <Project Path="profanity-service/profanity-service.csproj" />
 </Solution>
