@@ -1,5 +1,7 @@
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Polly;
+using Polly.Extensions.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,9 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddControllers();
-builder.Services.AddScoped<ArticleService>();
-builder.Services.AddSingleton<IArticleDbContextRouter, ArticleDbContextRouter>();
-builder.Services.AddHostedService<ArticleQueueConsumer>();
+
+builder.Services.AddScoped<PublisherService>();
+builder.Services.AddSingleton<ArticleQueuePublisher>();
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracerProviderBuilder =>
@@ -17,16 +19,32 @@ builder.Services.AddOpenTelemetry()
         tracerProviderBuilder
             .SetResourceBuilder(
                 ResourceBuilder.CreateDefault()
-                    .AddService("article-service"))
+                    .AddService("publisher-service"))
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
-            .AddSource("HappyHeadlines.ArticleService") 
+            .AddSource("HappyHeadlines.PublisherService")
             .AddZipkinExporter(options =>
             {
                 options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
             });
     });
 
+
+static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy(){
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(
+            handledEventsAllowedBeforeBreaking: 3,
+            durationOfBreak: TimeSpan.FromSeconds(30)
+        );
+}
+
+
+builder.Services.AddHttpClient<ProfanityServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("http://profanity-service");
+})
+.AddPolicyHandler(GetCircuitBreakerPolicy());
 
 var app = builder.Build();
 
@@ -35,19 +53,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-var migrationRunner = new DatabaseMigrationRunner(builder.Configuration);
-migrationRunner.MigrateAllDatabases();
-
-var serviceId = Environment.GetEnvironmentVariable("SERVICE_ID") ?? Guid.NewGuid().ToString().Substring(0, 8);
-
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"[{serviceId}] Handling request {context.Request.Method} {context.Request.Path}");
-    await next();
-});
 
 
-app.UseHttpsRedirection();
 
 app.MapControllers();
 

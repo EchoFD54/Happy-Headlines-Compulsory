@@ -1,0 +1,13 @@
+services:
+  profanitydb:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hhuser
+      POSTGRES_PASSWORD: hhpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - profanity-data:/var/lib/postgresql/data
+
+volumes:
+  profanity-data:
