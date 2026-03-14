@@ -1,6 +1,7 @@
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using OpenTelemetry.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,9 +17,7 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracerProviderBuilder =>
     {
         tracerProviderBuilder
-            .SetResourceBuilder(
-                ResourceBuilder.CreateDefault()
-                    .AddService("article-service"))
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("article-service"))
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddSource("HappyHeadlines.ArticleService") 
@@ -26,6 +25,16 @@ builder.Services.AddOpenTelemetry()
             {
                 options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
             });
+    })
+    .WithMetrics(metricsBuilder => 
+    {
+        metricsBuilder
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("article-service"))
+            .AddMeter("HappyHeadlines.ArticleService") 
+            .AddAspNetCoreInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddPrometheusExporter(); 
     });
 
 var redisConnection = builder.Configuration.GetValue<string>("Redis:ConnectionString") ?? "redis:6379";
@@ -39,6 +48,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
 var migrationRunner = new DatabaseMigrationRunner(builder.Configuration);
 migrationRunner.MigrateAllDatabases();

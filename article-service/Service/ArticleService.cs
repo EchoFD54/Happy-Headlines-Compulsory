@@ -1,13 +1,21 @@
 using StackExchange.Redis;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 
 public class ArticleService{
     private readonly IArticleDbContextRouter _router;
     private readonly IDatabase _cache;
 
+    private readonly Counter<long> _cacheHitCounter;
+    private readonly Counter<long> _cacheMissCounter;
+
     public ArticleService(IArticleDbContextRouter router, IConnectionMultiplexer redis) {
         _router = router;
         _cache = redis.GetDatabase();
+
+        var meter = new Meter("HappyHeadlines.ArticleService");
+        _cacheHitCounter = meter.CreateCounter<long>("article_cache_hits");
+        _cacheMissCounter = meter.CreateCounter<long>("article_cache_misses");
     }
 
     public async Task<Article> CreateArticle(Article article){
@@ -24,11 +32,14 @@ public class ArticleService{
         var cachedArticle = await _cache.StringGetAsync(key);
 
         if (cachedArticle.HasValue) {
+            _cacheHitCounter.Add(1);
             Console.WriteLine("Cache hit, returning article from Redis");
             return JsonSerializer.Deserialize<Article>((string?)cachedArticle!);
         }
 
+        _cacheMissCounter.Add(1);
         Console.WriteLine("Cache missed, fetching from database...");
+        
         var db = _router.GetDbContext(continent);
         var article = await db.Articles.FindAsync(id);
 

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 5s 
+
+scrape_configs:
+  - job_name: 'article-service'
+    static_configs:
+      - targets: ['article1:80', 'article2:80', 'article3:80']
+
+  - job_name: 'comment-service'
+    static_configs:
+      - targets: ['comment-service:80']

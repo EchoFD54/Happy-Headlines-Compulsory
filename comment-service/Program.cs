@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Polly;
 using Polly.Extensions.Http;
 using StackExchange.Redis;
+using OpenTelemetry.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,12 +40,25 @@ builder.Services.AddHttpClient<ProfanityServiceClient>(client =>
 })
 .AddPolicyHandler(GetCircuitBreakerPolicy());
 
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metricsBuilder =>
+    {
+        metricsBuilder
+            .AddMeter("HappyHeadlines.CommentService") 
+            .AddAspNetCoreInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddPrometheusExporter(); 
+    });
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope()){
     var db = scope.ServiceProvider.GetRequiredService<CommentDbContext>();
-    db.Database.Migrate(); // This applies any pending migrations
+    db.Database.Migrate(); 
 }
+
+app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
 if (app.Environment.IsDevelopment()){
     app.MapOpenApi();

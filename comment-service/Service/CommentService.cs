@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 
 public class CommentService {
     private readonly CommentDbContext _dbContext;
     private readonly ProfanityServiceClient _profanityClient;
     private readonly IDatabase _cache;
+
+    private readonly Counter<long> _hitCounter;
+    private readonly Counter<long> _missCounter;
     private const string LRU_KEY = "comment_lru";
     private const int MAX_CACHE_SIZE = 30;
 
@@ -13,6 +17,10 @@ public class CommentService {
         _dbContext = dbContext;
         _profanityClient = profanityClient;
         _cache = redis.GetDatabase();
+
+        var meter = new Meter("HappyHeadlines.CommentService");
+        _hitCounter = meter.CreateCounter<long>("comment_cache_hits");
+        _missCounter = meter.CreateCounter<long>("comment_cache_misses");
     }
 
     public async Task<List<Comment>> GetCommentsByArticle(Guid articleId) {
@@ -20,6 +28,7 @@ public class CommentService {
 
         var cachedData = await _cache.StringGetAsync(cacheKey);
         if (cachedData.HasValue) {
+            _hitCounter.Add(1);
             Console.WriteLine($"⚡ Comment Cache Hit: Article {articleId}");
             
             await UpdateLruAccess(articleId.ToString());
@@ -27,6 +36,7 @@ public class CommentService {
             return JsonSerializer.Deserialize<List<Comment>>((string?)cachedData!)!;
         }
 
+        _missCounter.Add(1);
         Console.WriteLine($"Comment Cache Miss: Article {articleId}");
         var comments = await _dbContext.Comments
             .Where(c => c.ArticleId == articleId)
