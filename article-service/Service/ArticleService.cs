@@ -1,8 +1,13 @@
+using StackExchange.Redis;
+using System.Text.Json;
+
 public class ArticleService{
     private readonly IArticleDbContextRouter _router;
+    private readonly IDatabase _cache;
 
-    public ArticleService(IArticleDbContextRouter router){
+    public ArticleService(IArticleDbContextRouter router, IConnectionMultiplexer redis) {
         _router = router;
+        _cache = redis.GetDatabase();
     }
 
     public async Task<Article> CreateArticle(Article article){
@@ -14,9 +19,24 @@ public class ArticleService{
         return article;
     }
 
-    public async Task<Article?> GetArticle(Guid id, Continent continent){
-    var db = _router.GetDbContext(continent);
-    return await db.Articles.FindAsync(id);
+    public async Task<Article?> GetArticle(Guid id, Continent continent) {
+        string key = $"article:{id}";
+        var cachedArticle = await _cache.StringGetAsync(key);
+
+        if (cachedArticle.HasValue) {
+            Console.WriteLine("Cache hit, returning article from Redis");
+            return JsonSerializer.Deserialize<Article>((string?)cachedArticle!);
+        }
+
+        Console.WriteLine("Cache missed, fetching from database...");
+        var db = _router.GetDbContext(continent);
+        var article = await db.Articles.FindAsync(id);
+
+        if (article != null) {
+            await _cache.StringSetAsync(key, JsonSerializer.Serialize(article), TimeSpan.FromHours(1));
+        }
+
+        return article;
     }
 
     public async Task<Article?> UpdateArticle(Guid id, Article updatedArticle){
@@ -37,13 +57,13 @@ public class ArticleService{
         return existing;
     }
 
-    public async Task<bool> DeleteArticle(Guid id, Continent continent){
+    public async Task<bool> DeleteArticle(Guid id, Continent continent) {
         var db = _router.GetDbContext(continent);
         var article = await db.Articles.FindAsync(id);
         if (article == null) return false;
-
         db.Articles.Remove(article);
         await db.SaveChangesAsync();
+        await _cache.KeyDeleteAsync($"article:{id}"); 
         return true;
     }
     }

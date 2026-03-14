@@ -5,16 +5,13 @@ public class ArticleDbContextRouter : IArticleDbContextRouter
     private readonly IServiceProvider _serviceProvider;
     private readonly IConfiguration _configuration;
 
-    public ArticleDbContextRouter(IServiceProvider serviceProvider, IConfiguration configuration)
-    {
+    public ArticleDbContextRouter(IServiceProvider serviceProvider, IConfiguration configuration){
         _serviceProvider = serviceProvider;
         _configuration = configuration;
     }
 
-    public ArticleDbContext GetDbContext(Continent continent)
-    {
-        string connectionString = continent switch
-        {
+    public ArticleDbContext GetDbContext(Continent continent){
+        string connectionString = continent switch{
             Continent.Africa => _configuration.GetConnectionString("AfricaDb"),
             Continent.Antarctica => _configuration.GetConnectionString("AntarcticaDb"),
             Continent.Asia => _configuration.GetConnectionString("AsiaDb"),

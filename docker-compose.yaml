@@ -11,6 +11,11 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
 
   postgres:
     image: postgres:16
@@ -32,6 +37,16 @@ services:
       - "5433:5432"
     volumes:
       - profanity-data:/var/lib/postgresql/data
+
+  commentdb:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hhuser
+      POSTGRES_PASSWORD: hhpass
+    ports:
+      - "5434:5432"
+    volumes:
+      - comment-data:/var/lib/postgresql/data
 
   publisher-service:
     build: 
@@ -57,7 +72,18 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__ProfanityDb=Host=profanitydb;Port=5432;Database=profanity_db;Username=hhuser;Password=hhpass
     ports:
-      - "5096:80" 
+      - "5096:80"
+
+  comment-service:
+    build: 
+      context: ./comment-service
+      dockerfile: Dockerfile 
+    environment:
+      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CommentDb=Host=commentdb;Port=5432;Database=comment_db;Username=hhuser;Password=hhpass
+    ports:
+      - "5097:80"  
 
 
   article1: &article_base
@@ -71,6 +97,7 @@ services:
       - postgres
       - rabbitmq
       - zipkin
+      - redis
     expose:
       - "80"
 
@@ -104,3 +131,4 @@ services:
 volumes:
   postgres-data:
   profanity-data:
+  comment-data:
