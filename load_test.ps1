@@ -1,4 +1,4 @@
-$ids = @("550e8400-e29b-41d4-a716-446655440000", 
+$ids = @( 
 "11111111-1111-1111-1111-111111111001", 
 "11111111-1111-1111-1111-111111111002",
 "11111111-1111-1111-1111-111111111003",
@@ -28,20 +28,13 @@ $ids = @("550e8400-e29b-41d4-a716-446655440000",
 "11111111-1111-1111-1111-111111111027",
 "11111111-1111-1111-1111-111111111028",
 "11111111-1111-1111-1111-111111111029",
-"11111111-1111-1111-1111-111111111030",
-"3eb702c0-ecdf-489a-b1cc-a898ddee909f",
-"550e8400-e29b-41d4-a716-446655440000",
-"2e8df1be-cc82-4955-8405-8eba4732528b",
-"03a6f3c4-769c-4165-bbf2-53438bdde839",
-"ab726516-ca5c-48c6-875b-0c2d240adb35") 
+"11111111-1111-1111-1111-111111111030") 
 
 Write-Host "--- Starting Cache Load Test ---" -ForegroundColor Cyan
 
-foreach ($id in $ids) {
-    
+foreach ($id in $ids) {    
     $response = Invoke-WebRequest -Uri "http://localhost:5097/api/comment/$id" -Method Get -UseBasicParsing
-    
-    
+    Write-Host "Requested comments for Article ID: $id - Status Code: $($response.StatusCode)" -ForegroundColor Green
 }
 
 Write-Host "--- Test Complete ---" -ForegroundColor Cyan
