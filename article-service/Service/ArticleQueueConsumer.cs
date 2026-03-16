@@ -110,7 +110,7 @@ public class ArticleQueueConsumer : BackgroundService{
             autoAck: true,
             consumer: consumer);
 
-            Console.WriteLine("✅ Consumer is registered and listening...");
+            Console.WriteLine("Consumer is listening...");
 
          await Task.Delay(Timeout.Infinite, stoppingToken);
     }

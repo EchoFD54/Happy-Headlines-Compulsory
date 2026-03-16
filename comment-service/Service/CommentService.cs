@@ -29,7 +29,7 @@ public class CommentService {
         var cachedData = await _cache.StringGetAsync(cacheKey);
         if (cachedData.HasValue) {
             _hitCounter.Add(1);
-            Console.WriteLine($"⚡ Comment Cache Hit: Article {articleId}");
+            Console.WriteLine($"Comment Cache Hit: Article {articleId}");
             
             await UpdateLruAccess(articleId.ToString());
             
@@ -68,7 +68,7 @@ public class CommentService {
                 string oldestKey = oldest[0]!;
                 await _cache.KeyDeleteAsync($"comments:{oldestKey}"); 
                 await _cache.SortedSetRemoveAsync(LRU_KEY, oldestKey); 
-                Console.WriteLine($"🗑️ Comment Cache LRU: Evicted article {oldestKey} to maintain limit of 30.");
+                Console.WriteLine($"Comment Cache LRU: removed article {oldestKey} to maintain limit of 30.");
             }
         }
     }
