@@ -33,11 +33,10 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set Lowercase Docker User
-        run: echo "DOCKER_USER=$(echo ${{ secrets.DOCKER_USERNAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        run: echo "DOCKER_USER=$(echo "${{ secrets.DOCKER_USERNAME }}" | xargs | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build and Push Custom Services
         run: |
-          # Use the env variable we just created
           docker build -t ${{ env.DOCKER_USER }}/article-service ./article-service
           docker push ${{ env.DOCKER_USER }}/article-service
 
