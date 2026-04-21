@@ -5,5 +5,7 @@
   <Project Path="profanity-service/profanity-service.csproj" />
   <Project Path="publisher-service/publisher-service.csproj" />
   <Project Path="HappyHeadlines.Tests/HappyHeadlines.Tests.csproj" />
+  <Project Path="subscriber-service/subscriber-service.csproj" />
+  <Project Path="newsletter-service/newsletter-service.csproj" />
 
 </Solution>

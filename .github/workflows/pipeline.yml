@@ -49,3 +49,9 @@ jobs:
 
           docker build -t $D_USER/profanity-service ./profanity-service
           docker push $D_USER/profanity-service
+
+          docker build -t $D_USER/subscriber-service ./subscriber-service
+          docker push $D_USER/subscriber-service
+
+          docker build -t $D_USER/newsletter-service ./newsletter-service
+          docker push $D_USER/newsletter-service
