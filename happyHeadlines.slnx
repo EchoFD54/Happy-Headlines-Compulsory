@@ -4,4 +4,6 @@
   <Project Path="draft-service/draft-service.csproj" />
   <Project Path="profanity-service/profanity-service.csproj" />
   <Project Path="publisher-service/publisher-service.csproj" />
+  <Project Path="HappyHeadlines.Tests/HappyHeadlines.Tests.csproj" />
+
 </Solution>
